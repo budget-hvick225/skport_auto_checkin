@@ -1,12 +1,16 @@
 ATTENDANCE_URL = "https://zonai.skport.com/web/v1/game/endfield/attendance"
-WEBHOOK_URL = "" // leave empty if u dont want to add a webhook and get notified.
+WEBHOOK_URL = "" // leave empty if u dont need to add a webhook
 
 const accounts = {
-  "1": {
-    "identifier": "", // FEEL FREE TO WRITE THIS AS ANYTHING YOU WANNA TITLE THE ACCOUNT AS
+  "MainAccount": {
     "cred": "your_cred",
     "game_role": "your_game_role",
     "sign": "your_sign"
+  },
+  "AltAccount": {
+    "cred": "your_alt_cred",
+    "game_role": "your_alt_game_role",
+    "sign": "your_alt_sign"
   }
 }
 
@@ -16,9 +20,8 @@ function Notify(message){
             "method": "POST",
             "headers": { "Content-Type": "application/json" },
             "payload": JSON.stringify({ "content": message,
-            "username": "SKPort Check-in", // the name can be changed at will too
+            "username": "SKPort Check-in",
             "avatar_url": "https://static0.thegamerimages.com/wordpress/wp-content/uploads/wm/2026/01/arknights-endfield-laevatain-character-closeup.jpg?w=1600&h=900&fit=crop"
-            // feel free to replace the avatar link with anything you wish
             })
         };
 
@@ -26,8 +29,8 @@ function Notify(message){
     }
 }
 
-function Claim(account){
-    timestamp = ( Math.floor(Date.now() / 1000) ).toString()
+function Claim(account, identifier){
+    const timestamp = ( Math.floor(Date.now() / 1000) ).toString()
     const headers = {
         'User-Agent': "Mozilla/5.0 (X11; Linux x86_64; rv:144.0) Gecko/20100101 Firefox/144.0",
         'Accept': "*/*",
@@ -60,29 +63,26 @@ function Claim(account){
     
     const retCode = parsedResponse.code
     if (retCode == 0) {
-      let message = `Checked in successfully on account:${account.identifier}!`
-      if (WEBHOOK_URL != "") {
-        const awards = parsedResponse.data.awardIds.map(award => {
-          const resource = parsedResponse.data.resourceInfoMap[award.id];
-          return `${resource.name}: ${resource.count}`;
-          }).join(', ');
-        }
-        message += ` \nAwards:(${awards})`
-        Notify(message);
-      }
+      let message = `Checked in successfully on account:${identifier}!`
+      const awards = parsedResponse.data.awardIds.map(award => {
+        const resource = parsedResponse.data.resourceInfoMap[award.id];
+        return `${resource.name}: ${resource.count}`;
+        }).join(', ');
+      message += ` \nAwards:(${awards})`
+      Notify(message);
+    }
     else if (retCode == 10001) {
-      let message = `Already checked in on account:${account.identifier}!`
+      let message = `Already checked in on account:${identifier}!`
       Notify(message);
     }
     else {
-      let message = `Another check in error on account:${account.identifier} has occured. retCode: ${retCode}`;
-      // Errors known: 10002: Invalidated Cred (Usually by signing out from the website <mostly when switching accounts etc>)
+      let message = `Another check in error on account:${identifier} has occurred. retCode: ${retCode}`;
       Notify(message);
     }
 }
 
 function main(){
-  for (const key in accounts) {
-    Claim(accounts[key]);
+  for (const identifier in accounts) {
+    Claim(accounts[identifier], identifier);
   }
 }
